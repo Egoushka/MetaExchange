@@ -7,9 +7,17 @@ public class MetaExchangeService
 {
     private readonly List<Exchange> _exchanges;
 
-    public MetaExchangeService()
+    public MetaExchangeService(IConfiguration configuration)
     {
-        _exchanges = OrderBookLoader.Load("order_books_data.json");
+        var settings = configuration.GetSection("MetaExchangeSettings");
+        var filePath = settings.GetValue<string>("OrderBooksFilePath");
+
+        if (string.IsNullOrEmpty(filePath))
+        {
+            throw new InvalidOperationException("OrderBooksFilePath is not configured in appsettings.json.");
+        }
+
+        _exchanges = OrderBookLoader.Load(filePath);
     }
 
     public List<Exchange> GetExchanges()
