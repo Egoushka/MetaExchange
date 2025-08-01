@@ -15,11 +15,11 @@ public class MetaExchangeController : ControllerBase
     }
 
     [HttpPost("execute")]
-    public async Task<ActionResult<Features.ExecuteOrder.Response>> ExecuteOrder([FromBody] Features.ExecuteOrder.Request request)
+    public async Task<ActionResult<Features.ExecuteOrder.ExecuteOrderResponse>> ExecuteOrder([FromBody] Features.ExecuteOrder.ExecuteOrderRequest executeOrderRequest)
     {
         try
         {
-            var result = await _mediator.Send(request);
+            var result = await _mediator.Send(executeOrderRequest);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
