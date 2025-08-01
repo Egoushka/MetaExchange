@@ -5,12 +5,7 @@ namespace MetaExchange.Tests;
 
 public class OrderExecutorTests
 {
-    private readonly IOrderExecutor _executor;
-
-    public OrderExecutorTests()
-    {
-        _executor = new OrderExecutor();
-    }
+    private readonly IOrderExecutor _executor = new OrderExecutor();
 
     #region Buy Order Tests
 
@@ -29,9 +24,11 @@ public class OrderExecutorTests
         };
 
         // Act
-        var plan = _executor.GetBestExecutionPlan(exchanges, OrderType.Buy, 5m);
+        var result = _executor.GetBestExecutionPlan(exchanges, OrderType.Buy, 5m);
 
         // Assert
+        Assert.True(result.IsSuccess);
+        var plan = result.Value;
         Assert.NotNull(plan);
         var order = Assert.Single(plan);
         Assert.Equal("CheapExchange", order.ExchangeName);
@@ -54,9 +51,11 @@ public class OrderExecutorTests
         };
 
         // Act
-        var plan = _executor.GetBestExecutionPlan(exchanges, OrderType.Buy, 8m);
+        var result = _executor.GetBestExecutionPlan(exchanges, OrderType.Buy, 8m);
 
         // Assert
+        Assert.True(result.IsSuccess);
+        var plan = result.Value;
         Assert.Equal(2, plan.Count);
         Assert.Collection(plan,
             order1 =>
@@ -90,9 +89,11 @@ public class OrderExecutorTests
         };
 
         // Act
-        var plan = _executor.GetBestExecutionPlan(exchanges, OrderType.Buy, 8m); // Need 8 BTC
+        var result = _executor.GetBestExecutionPlan(exchanges, OrderType.Buy, 8m); // Need 8 BTC
 
         // Assert
+        Assert.True(result.IsSuccess);
+        var plan = result.Value;
         Assert.Equal(2, plan.Count);
         Assert.Collection(plan,
             order1 =>
@@ -125,9 +126,11 @@ public class OrderExecutorTests
         };
 
         // Act
-        var plan = _executor.GetBestExecutionPlan(exchanges, OrderType.Buy, 2m);
+        var result = _executor.GetBestExecutionPlan(exchanges, OrderType.Buy, 2m);
 
         // Assert
+        Assert.True(result.IsSuccess);
+        var plan = result.Value;
         Assert.Equal(2, plan.Count);
         Assert.Collection(plan,
             order1 =>
@@ -140,7 +143,7 @@ public class OrderExecutorTests
     }
 
     [Fact]
-    public void GetBestExecutionPlan_InsufficientTotalLiquidityForBuy_ThrowsInvalidOperationException()
+    public void GetBestExecutionPlan_InsufficientTotalLiquidityForBuy_ReturnsFailureResult()
     {
         // Arrange: Total available BTC to buy is 5, but we need 10.
         var exchanges = new List<Exchange>
@@ -148,10 +151,13 @@ public class OrderExecutorTests
             new("ExchangeA", new OrderBook(Asks: [new(3000m, 5m)], Bids: []), 100_000, 10)
         };
 
-        // Act & Assert
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            _executor.GetBestExecutionPlan(exchanges, OrderType.Buy, 10m));
-        Assert.Contains("Not enough liquidity or balance", exception.Message);
+        // Act
+        var result = _executor.GetBestExecutionPlan(exchanges, OrderType.Buy, 10m);
+        
+        // Assert
+        Assert.True(result.IsFailed);
+        var error = Assert.Single(result.Errors);
+        Assert.Contains("Not enough liquidity or balance", error.Message);
     }
 
     #endregion
@@ -175,9 +181,11 @@ public class OrderExecutorTests
         };
 
         // Act
-        var plan = _executor.GetBestExecutionPlan(exchanges, OrderType.Sell, 5m);
+        var result = _executor.GetBestExecutionPlan(exchanges, OrderType.Sell, 5m);
 
         // Assert
+        Assert.True(result.IsSuccess);
+        var plan = result.Value;
         Assert.NotNull(plan);
         var order = Assert.Single(plan);
         Assert.Equal("TopBidExchange", order.ExchangeName);
@@ -197,9 +205,11 @@ public class OrderExecutorTests
         };
 
         // Act
-        var plan = _executor.GetBestExecutionPlan(exchanges, OrderType.Sell, 8m);
+        var result = _executor.GetBestExecutionPlan(exchanges, OrderType.Sell, 8m);
 
         // Assert
+        Assert.True(result.IsSuccess);
+        var plan = result.Value;
         Assert.Equal(2, plan.Count);
         Assert.Collection(plan,
             order1 =>
@@ -229,9 +239,11 @@ public class OrderExecutorTests
         };
 
         // Act
-        var plan = _executor.GetBestExecutionPlan(exchanges, OrderType.Sell, 5m); // We want to sell 5
+        var result = _executor.GetBestExecutionPlan(exchanges, OrderType.Sell, 5m); // We want to sell 5
 
         // Assert
+        Assert.True(result.IsSuccess);
+        var plan = result.Value;
         Assert.Equal(2, plan.Count);
         Assert.Collection(plan,
             order1 =>
@@ -248,7 +260,7 @@ public class OrderExecutorTests
     }
 
     [Fact]
-    public void GetBestExecutionPlan_InsufficientTotalLiquidityForSell_ThrowsInvalidOperationException()
+    public void GetBestExecutionPlan_InsufficientTotalLiquidityForSell_ReturnsFailureResult()
     {
         // Arrange: Total market demand is 5 BTC, but we want to sell 10.
         var exchanges = new List<Exchange>
@@ -256,10 +268,13 @@ public class OrderExecutorTests
             new("ExchangeA", new OrderBook(Asks: [], Bids: [new(3000m, 5m)]), 100_000, 10)
         };
 
-        // Act & Assert
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            _executor.GetBestExecutionPlan(exchanges, OrderType.Sell, 10m));
-        Assert.Contains("Not enough liquidity or balance", exception.Message);
+        // Act
+        var result = _executor.GetBestExecutionPlan(exchanges, OrderType.Sell, 10m);
+
+        // Assert
+        Assert.True(result.IsFailed);
+        var error = Assert.Single(result.Errors);
+        Assert.Contains("Not enough liquidity or balance", error.Message);
     }
 
     #endregion
@@ -276,9 +291,11 @@ public class OrderExecutorTests
         };
 
         // Act
-        var plan = _executor.GetBestExecutionPlan(exchanges, OrderType.Buy, 0m);
+        var result = _executor.GetBestExecutionPlan(exchanges, OrderType.Buy, 0m);
 
         // Assert
+        Assert.True(result.IsSuccess);
+        var plan = result.Value;
         Assert.NotNull(plan);
         Assert.Empty(plan);
     }
@@ -294,9 +311,11 @@ public class OrderExecutorTests
         };
 
         // Act
-        var plan = _executor.GetBestExecutionPlan(exchanges, OrderType.Buy, 5m);
+        var result = _executor.GetBestExecutionPlan(exchanges, OrderType.Buy, 5m);
 
         // Assert
+        Assert.True(result.IsSuccess);
+        var plan = result.Value;
         var order = Assert.Single(plan);
         Assert.Equal("WorkingExchange", order.ExchangeName);
     }

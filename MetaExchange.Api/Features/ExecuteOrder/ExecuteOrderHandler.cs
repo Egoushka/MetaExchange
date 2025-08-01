@@ -1,10 +1,11 @@
+using FluentResults;
 using MediatR;
 using MetaExchange.Api.Services;
 using MetaExchange.Core;
 
 namespace MetaExchange.Api.Features.ExecuteOrder;
 
-public class ExecuteOrderHandler : IRequestHandler<ExecuteOrderRequest, ExecuteOrderResponse>
+public class ExecuteOrderHandler : IRequestHandler<ExecuteOrderRequest, Result<ExecuteOrderResponse>>
 {
     private readonly MetaExchangeService _metaExchangeService;
     private readonly IOrderExecutor _orderExecutor;
@@ -15,13 +16,31 @@ public class ExecuteOrderHandler : IRequestHandler<ExecuteOrderRequest, ExecuteO
         _orderExecutor = orderExecutor;
     }
 
-    public Task<ExecuteOrderResponse> Handle(ExecuteOrderRequest executeOrderRequest, CancellationToken cancellationToken)
+    public Task<Result<ExecuteOrderResponse>> Handle(ExecuteOrderRequest executeOrderRequest, CancellationToken cancellationToken)
     {
+        if (executeOrderRequest.Amount <= 0)
+        {
+            return Task.FromResult(Result.Fail<ExecuteOrderResponse>(
+                new Error("Order amount must be a positive number.")));
+        }
+        
         var exchanges = _metaExchangeService.GetExchanges();
 
-        var executionOrders = _orderExecutor
+        if (exchanges.Count == 0)
+        {
+            return Task.FromResult(Result.Fail<ExecuteOrderResponse>(
+                new Error("No exchange data is available to process the order.")));
+        }
+
+        var executionPlanResult = _orderExecutor
             .GetBestExecutionPlan(exchanges, executeOrderRequest.Type, executeOrderRequest.Amount);
 
+        if (executionPlanResult.IsFailed)
+        {
+            return Task.FromResult(Result.Fail<ExecuteOrderResponse>(executionPlanResult.Errors));
+        }
+
+        var executionOrders = executionPlanResult.Value;
         var orderDtos = executionOrders
             .Select(ExecuteOrderResponse.ExecutionOrderDto.FromEntity)
             .ToList();
@@ -30,13 +49,12 @@ public class ExecuteOrderHandler : IRequestHandler<ExecuteOrderRequest, ExecuteO
         {
             var emptyResponse = new ExecuteOrderResponse([], 0);
             
-            return Task.FromResult(emptyResponse);
+            return Task.FromResult(Result.Ok(emptyResponse));
         }
         
         var averagePrice = orderDtos.Average(o => o.PricePerBtc);
-
         var response = new ExecuteOrderResponse(orderDtos, averagePrice);
 
-        return Task.FromResult(response);
+        return Task.FromResult(Result.Ok(response));
     }
 }

@@ -44,11 +44,21 @@ public class ConsoleRunner
                 var executionInput = _parser.Parse(input);
                 System.Console.WriteLine($"\nAttempting to {executionInput.Type} {executionInput.Amount} BTC...");
                 
-                var plan = _executor.GetBestExecutionPlan(_exchanges, executionInput.Type, executionInput.Amount);
-                
-                _presenter.DisplayExecutionPlan(plan);
+                var planResult = _executor.GetBestExecutionPlan(_exchanges, executionInput.Type, executionInput.Amount);
+
+                if (planResult.IsSuccess)
+                {
+                    _presenter.DisplayExecutionPlan(planResult.Value);
+                }
+                else
+                {
+                    foreach (var error in planResult.Errors)
+                    {
+                        _presenter.DisplayError(error.Message);
+                    }
+                }
             }
-            catch (Exception ex) when (ex is FormatException || ex is ArgumentException || ex is InvalidOperationException)
+            catch (Exception ex) when (ex is FormatException || ex is ArgumentException)
             {
                 _presenter.DisplayError(ex.Message);
             }

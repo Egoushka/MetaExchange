@@ -1,28 +1,37 @@
+using FluentResults;
+using MetaExchange.Domain;
+
 namespace MetaExchange.Core;
 
-using MetaExchange.Domain;
 using System.Collections.Generic;
 using System.Linq;
 
 public class OrderExecutor : IOrderExecutor
 {
-    public List<ExecutionOrder> GetBestExecutionPlan(List<Exchange> exchanges, OrderType type, decimal targetBtcAmount)
+    private const decimal Epsilon = 0.00000001m;
+
+    public Result<List<ExecutionOrder>> GetBestExecutionPlan(List<Exchange> exchanges, OrderType type, decimal targetBtcAmount)
     {
+        if (targetBtcAmount <= Epsilon)
+        {
+            return Result.Ok(new List<ExecutionOrder>());
+        }
+        
         return type == OrderType.Buy
             ? ExecuteBuyPlan(exchanges, targetBtcAmount)
             : ExecuteSellPlan(exchanges, targetBtcAmount);
     }
 
-    private List<ExecutionOrder> ExecuteBuyPlan(List<Exchange> exchanges, decimal targetBtcAmount)
+    private Result<List<ExecutionOrder>> ExecuteBuyPlan(List<Exchange> exchanges, decimal targetBtcAmount)
     {
         var plan = new List<ExecutionOrder>();
         var remainingBtcToProcess = targetBtcAmount;
         
+        var exchangesByName = exchanges.ToDictionary(ex => ex.Name);
         var exchangeBalances = exchanges.ToDictionary(ex => ex.Name, ex => ex.EurBalance);
         var nextAskIndex = exchanges.ToDictionary(ex => ex.Name, _ => 0);
 
         var queue = new PriorityQueue<(string ExchangeName, decimal Price), decimal>();
-
         foreach (var ex in exchanges)
         {
             if (ex.Book.Asks.Any())
@@ -31,22 +40,22 @@ public class OrderExecutor : IOrderExecutor
             }
         }
 
-        while (remainingBtcToProcess > 0.00000001m && queue.Count > 0)
+        while (remainingBtcToProcess > Epsilon && queue.Count > 0)
         {
-            // Dequeue the globally best offer (lowest price).
             var (exchangeName, price) = queue.Dequeue();
             
-            var exchange = exchanges.First(e => e.Name == exchangeName);
+            var exchange = exchangesByName[exchangeName];
             var askIndex = nextAskIndex[exchangeName];
             
             var offer = exchange.Book.Asks[askIndex];
 
             decimal eurBalance = exchangeBalances[exchangeName];
+            
             decimal maxAmountDueToBalance = (price > 0) ? eurBalance / price : 0;
             decimal executableAmount = Math.Min(offer.Amount, maxAmountDueToBalance);
             decimal amountToTake = Math.Min(remainingBtcToProcess, executableAmount);
 
-            if (amountToTake > 0)
+            if (amountToTake > Epsilon)
             {
                 plan.Add(new ExecutionOrder(exchangeName, OrderType.Buy, amountToTake, price));
                 remainingBtcToProcess -= amountToTake;
@@ -61,37 +70,35 @@ public class OrderExecutor : IOrderExecutor
             }
         }
 
-        if (remainingBtcToProcess > 0.00000001m)
-            throw new InvalidOperationException("Not enough liquidity or balance to fulfill the buy order.");
+        if (remainingBtcToProcess > Epsilon)
+            return Result.Fail("Not enough liquidity or balance to fulfill the buy order.");
 
-        return plan;
+        return Result.Ok(plan);
     }
     
-    private List<ExecutionOrder> ExecuteSellPlan(List<Exchange> exchanges, decimal targetBtcAmount)
+    private Result<List<ExecutionOrder>> ExecuteSellPlan(List<Exchange> exchanges, decimal targetBtcAmount)
     {
         var plan = new List<ExecutionOrder>();
         var remainingBtcToProcess = targetBtcAmount;
-
+        
+        var exchangesByName = exchanges.ToDictionary(ex => ex.Name);
         var exchangeBalances = exchanges.ToDictionary(ex => ex.Name, ex => ex.BtcBalance);
         var nextBidIndex = exchanges.ToDictionary(ex => ex.Name, _ => 0);
         
-        // To find the highest price, we use a Min-Heap but give it the NEGATIVE price as priority.
-        // The smallest negative number corresponds to the largest positive number.
         var queue = new PriorityQueue<(string ExchangeName, decimal Price), decimal>();
-        
         foreach (var ex in exchanges)
         {
             if (ex.Book.Bids.Any())
             {
                 var price = ex.Book.Bids[0].Price;
-                queue.Enqueue((ex.Name, price), -price); // Note the negative priority
+                queue.Enqueue((ex.Name, price), -price);
             }
         }
 
-        while (remainingBtcToProcess > 0.00000001m && queue.Count > 0)
+        while (remainingBtcToProcess > Epsilon && queue.Count > 0)
         {
             var (exchangeName, price) = queue.Dequeue();
-            var ex = exchanges.First(e => e.Name == exchangeName);
+            var ex = exchangesByName[exchangeName];
             var bidIndex = nextBidIndex[exchangeName];
             var offer = ex.Book.Bids[bidIndex];
 
@@ -99,7 +106,7 @@ public class OrderExecutor : IOrderExecutor
             decimal executableAmount = Math.Min(offer.Amount, btcBalance);
             decimal amountToTake = Math.Min(remainingBtcToProcess, executableAmount);
 
-            if (amountToTake > 0)
+            if (amountToTake > Epsilon)
             {
                 plan.Add(new ExecutionOrder(exchangeName, OrderType.Sell, amountToTake, price));
                 remainingBtcToProcess -= amountToTake;
@@ -114,9 +121,9 @@ public class OrderExecutor : IOrderExecutor
             }
         }
 
-        if (remainingBtcToProcess > 0.00000001m)
-            throw new InvalidOperationException("Not enough liquidity or balance to fulfill the sell order.");
+        if (remainingBtcToProcess > Epsilon)
+            return Result.Fail("Not enough liquidity or balance to fulfill the sell order.");
 
-        return plan;
+        return Result.Ok(plan);
     }
 }

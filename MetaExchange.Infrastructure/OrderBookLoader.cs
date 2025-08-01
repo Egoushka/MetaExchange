@@ -5,7 +5,7 @@ namespace MetaExchange.Infrastructure;
 
 public static class OrderBookLoader
 {
-    public static List<Exchange> Load(string filePath = "order_books_data.json")
+    public static List<Exchange> Load(string filePath)
     {
         var result = new List<Exchange>();
         var lines = File.ReadAllLines(filePath);
