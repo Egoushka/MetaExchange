@@ -1,8 +1,4 @@
-using MetaExchange.Core;
-using MetaExchange.Api.Dtos;
-using MetaExchange.Api.Requests;
-using MetaExchange.Api.Services;
-using MetaExchange.Domain;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MetaExchange.Api.Controllers;
@@ -11,30 +7,19 @@ namespace MetaExchange.Api.Controllers;
 [Route("api/[controller]")]
 public class MetaExchangeController : ControllerBase
 {
-    private readonly MetaExchangeService _metaExchangeService;
-    private readonly IOrderExecutor _orderExecutor;
+    private readonly IMediator _mediator;
 
-    public MetaExchangeController(MetaExchangeService metaExchangeService, IOrderExecutor orderExecutor)
+    public MetaExchangeController(IMediator mediator)
     {
-        _metaExchangeService = metaExchangeService;
-        _orderExecutor = orderExecutor;
+        _mediator = mediator;
     }
-    
+
     [HttpPost("execute")]
-    public ActionResult<ExecuteOrderDto> ExecuteOrder([FromBody] ExecuteOrderRequest request)
+    public async Task<ActionResult<Features.ExecuteOrder.Response>> ExecuteOrder([FromBody] Features.ExecuteOrder.Request request)
     {
-        var exchanges = _metaExchangeService.GetExchanges(); 
         try
         {
-            var executionOrders = _orderExecutor
-                .GetBestExecutionPlan(exchanges, request.Type, request.Amount)
-                .Select(ExecuteOrderDto.ExecutionOrderDto.FromEntity)
-                .ToList();
-            
-            var averagePrice = executionOrders.Average(o => o.PricePerBtc);
-
-            var result = new ExecuteOrderDto(executionOrders, averagePrice);
-            
+            var result = await _mediator.Send(request);
             return Ok(result);
         }
         catch (InvalidOperationException ex)

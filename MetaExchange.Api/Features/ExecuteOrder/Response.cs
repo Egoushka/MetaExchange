@@ -1,8 +1,8 @@
 using MetaExchange.Domain;
 
-namespace MetaExchange.Api.Dtos;
+namespace MetaExchange.Api.Features.ExecuteOrder;
 
-public record ExecuteOrderDto(List<ExecuteOrderDto.ExecutionOrderDto> Orders, decimal AveragePrice)
+public record Response(List<Response.ExecutionOrderDto> Orders, decimal AveragePrice)
 {
     public record ExecutionOrderDto(string ExchangeName, OrderType Type, decimal BtcAmount, decimal PricePerBtc)
     {
@@ -12,5 +12,3 @@ public record ExecuteOrderDto(List<ExecuteOrderDto.ExecutionOrderDto> Orders, de
         }
     }
 }
-
-
