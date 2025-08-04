@@ -13,7 +13,7 @@ public class PlanPresenter
         System.Console.ForegroundColor = ConsoleColor.Green;
         System.Console.WriteLine("Welcome to the MetaExchange Console.");
         System.Console.ResetColor();
-        System.Console.WriteLine("Enter a command in the format '[buy|sell] [amount]' (e.g., 'buy 10.5').");
+        System.Console.WriteLine("Enter a command in the format '[buy|sell] [amount]' (e.g., 'buy 10,5').");
         System.Console.WriteLine("Type 'exit' to quit the application.\n");
     }
 
@@ -56,7 +56,7 @@ public class PlanPresenter
         System.Console.WriteLine("\n--- Summary ---");
         System.Console.ResetColor();
         System.Console.WriteLine($"Total BTC to {orderType}: {totalBtcExecuted:F8}");
-        System.Console.WriteLine($"{(orderType == OrderType.Buy ? "Total Cost" : "Total Revenue")}: {totalEurCost:C}");
+        System.Console.WriteLine($"{(orderType == OrderType.Buy ? "Total Cost" : "Total Revenue")}: {totalEurCost} EUR");
         System.Console.WriteLine($"Effective Price: {effectivePrice} EUR per BTC\n");
     }
 }
