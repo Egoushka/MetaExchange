@@ -37,8 +37,8 @@ public static class OrderBookLoader
             var exchange = new Exchange(
                 Name: $"Exchange{index++}",
                 Book: book,
-                EurBalance: 100_000m,
-                BtcBalance: 100m
+                EurBalance: Random.Shared.Next(100, 1000) * 1_000_000m, // Random EUR balance between 100M and 1B
+                BtcBalance: Random.Shared.Next(10, 100) * 1_000_000m // Random BTC balance between 10M and 100M
             );
 
             result.Add(exchange);
