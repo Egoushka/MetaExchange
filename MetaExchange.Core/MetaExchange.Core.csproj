@@ -14,4 +14,10 @@
       <PackageReference Include="FluentResults" Version="4.0.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Update="OrderExecutor.cs">
+        <DependentUpon>IOrderExecutor.cs</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
 </Project>

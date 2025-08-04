@@ -157,7 +157,7 @@ public class OrderExecutorTests
         // Assert
         Assert.True(result.IsFailed);
         var error = Assert.Single(result.Errors);
-        Assert.Contains("Not enough liquidity or balance", error.Message);
+        Assert.Contains("Not enough liquidity or EUR balance to fulfill the buy order.", error.Message);
     }
 
     #endregion
@@ -274,7 +274,7 @@ public class OrderExecutorTests
         // Assert
         Assert.True(result.IsFailed);
         var error = Assert.Single(result.Errors);
-        Assert.Contains("Not enough liquidity or balance", error.Message);
+        Assert.Contains("Not enough liquidity or BTC balance to fulfill the sell order.", error.Message);
     }
 
     #endregion

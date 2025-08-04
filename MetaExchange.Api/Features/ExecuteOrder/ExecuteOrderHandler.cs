@@ -18,10 +18,10 @@ public class ExecuteOrderHandler : IRequestHandler<ExecuteOrderRequest, Result<E
 
     public Task<Result<ExecuteOrderResponse>> Handle(ExecuteOrderRequest executeOrderRequest, CancellationToken cancellationToken)
     {
-        if (executeOrderRequest.Amount <= 0)
+        if (executeOrderRequest.Amount < Constants.Satoshi)
         {
             return Task.FromResult(Result.Fail<ExecuteOrderResponse>(
-                new Error("Order amount must be a positive number.")));
+                new Error("Order amount is too small. It must be at least 0.00000001 BTC.")));
         }
         
         var exchanges = _metaExchangeService.GetExchanges();
