@@ -18,10 +18,10 @@ public class ExecuteOrderHandler : IRequestHandler<ExecuteOrderRequest, Result<E
 
     public Task<Result<ExecuteOrderResponse>> Handle(ExecuteOrderRequest executeOrderRequest, CancellationToken cancellationToken)
     {
-        if (executeOrderRequest.Amount < Constants.Satoshi)
+        if (executeOrderRequest.Amount < Constants.Satoshi || decimal.Round(executeOrderRequest.Amount, 8) != executeOrderRequest.Amount)
         {
             return Task.FromResult(Result.Fail<ExecuteOrderResponse>(
-                new Error("Order amount is too small. It must be at least 0.00000001 BTC.")));
+                new Error("Invalid BTC amount. It must be at least 0.00000001 and have no more than 8 decimal places.")));
         }
         
         var exchanges = _metaExchangeService.GetExchanges();

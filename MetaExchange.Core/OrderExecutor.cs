@@ -45,7 +45,7 @@ public class OrderExecutor : IOrderExecutor
 
         var queue = PrepareQueue(states, prioritySelector);
 
-        while (remainingBtc > Constants.Satoshi && queue.Count > 0)
+        while (remainingBtc > 0 && queue.Count > 0)
         {
             var (exchangeName, currentOffer) = queue.Dequeue();
             var state = states.First(s => s.Name == exchangeName).Item2;
@@ -54,7 +54,7 @@ public class OrderExecutor : IOrderExecutor
             decimal executableAmount = Math.Min(currentOffer.Amount, maxAmountFromBalance);
             decimal amountToTake = Math.Min(remainingBtc, executableAmount);
 
-            if (amountToTake > Constants.Satoshi)
+            if (amountToTake > 0)
             {
                 plan.Add(new ExecutionOrder(exchangeName, orderType, amountToTake, currentOffer.Price));
                 remainingBtc -= amountToTake;
@@ -69,7 +69,7 @@ public class OrderExecutor : IOrderExecutor
             }
         }
 
-        if (remainingBtc > Constants.Satoshi)
+        if (remainingBtc > 0)
             return Result.Fail(orderType == OrderType.Buy
                 ? "Not enough liquidity or EUR balance to fulfill the buy order."
                 : "Not enough liquidity or BTC balance to fulfill the sell order.");
